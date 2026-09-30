@@ -116,20 +116,21 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-            steps {
-                script {
-                    def scannerHome = tool env.SONAR_SCANNER_TOOL
-
-                    withSonarQubeEnv(env.SONARQUBE_INSTALLATION) {
-                        sh """
-                            set -e
-                            ${scannerHome}/bin/sonar-scanner \
-                              -Dsonar.projectVersion=${BUILD_NUMBER}
-                        """
-                    }
-                }
+    steps {
+        script {
+            def scannerHome = tool 'sonar-scanner'
+            withSonarQubeEnv('SonarQube') {
+                sh """
+                    ${scannerHome}/bin/sonar-scanner \
+                    -Dsonar.projectKey=hello-policy-app \
+                    -Dsonar.sources=. \
+                    -Dsonar.host.url=http://<your-sonarqube-host>:9000 \
+                    -Dsonar.login=${SONAR_TOKEN}
+                """
             }
         }
+    }
+}
 
         stage('SonarQube Quality Gate') {
             steps {
