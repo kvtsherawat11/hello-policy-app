@@ -10,8 +10,13 @@ deny[msg] {
 
 # Require FARGATE compatibility
 deny[msg] {
-    not input.requiresCompatibilities[_] == "FARGATE"
+    not fargate_compatibility
     msg := "ECS task definition must include FARGATE compatibility"
+}
+
+fargate_compatibility {
+    some c in input.requiresCompatibilities
+    c == "FARGATE"
 }
 
 # Require read-only root filesystem
