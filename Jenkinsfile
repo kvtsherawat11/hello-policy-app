@@ -21,7 +21,8 @@ pipeline {
         ECS_SERVICE = 'hello-policy-service'
         ECS_TASK_FAMILY = 'hello-policy-app'
 
-        ECS_EXECUTION_ROLE_ARN = 'arn:aws:iam::123456789012:role/ecsTaskExecutionRole'
+        ECS_EXECUTION_ROLE_ARN = 'arn:aws:iam::054221783339:role/ecsTaskExecutionRole'
+'
 
         SONARQUBE_INSTALLATION = 'SonarQube'
         SONAR_SCANNER_TOOL = 'sonar-scanner'
