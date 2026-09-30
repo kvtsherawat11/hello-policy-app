@@ -1,27 +1,29 @@
-package main
+package dockerfile
 
-deny contains msg if {
+import future.keywords.in
+
+# Rule: Disallow 'latest' tag in FROM
+deny[msg] {
     some i
     input[i].Cmd == "from"
     lower(input[i].Value[0]) == "latest"
     msg := "Docker base image must not use the latest tag"
 }
 
-deny contains msg if {
+# Rule: Disallow ADD, recommend COPY
+deny[msg] {
     some i
     input[i].Cmd == "add"
-    msg := sprintf(
-        "Use COPY instead of ADD at Dockerfile instruction %d",
-        [i]
-    )
+    msg := sprintf("Use COPY instead of ADD at Dockerfile instruction %d", [i])
 }
 
-deny contains msg if {
+# Rule: Require non-root USER
+deny[msg] {
     not has_non_root_user
     msg := "Dockerfile must define a non-root USER"
 }
 
-has_non_root_user if {
+has_non_root_user {
     some i
     input[i].Cmd == "user"
     user := lower(input[i].Value[0])
@@ -29,7 +31,8 @@ has_non_root_user if {
     user != "0"
 }
 
-deny contains msg if {
+# Rule: Disallow passwords in ENV
+deny[msg] {
     some i
     input[i].Cmd == "env"
     some value in input[i].Value
@@ -37,7 +40,8 @@ deny contains msg if {
     msg := "Do not store passwords in Dockerfile ENV instructions"
 }
 
-deny contains msg if {
+# Rule: Disallow secrets in ENV
+deny[msg] {
     some i
     input[i].Cmd == "env"
     some value in input[i].Value
