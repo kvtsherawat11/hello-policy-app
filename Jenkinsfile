@@ -180,4 +180,124 @@ pipeline {
             steps {
                 sh '''
                     set -e
-                    CONTAINER_ID="$(docker run --detach --publish 18080:8080 "${IMAGE_URI
+                    CONTAINER_ID="$(docker run --detach --publish 18080:8080 "${IMAGE_URI}")"
+                    cleanup() {
+                      docker logs "${CONTAINER_ID}" || true
+                      docker rm --force "${CONTAINER_ID}" || true
+                    }
+                    trap cleanup EXIT
+                    ATTEMPT=1
+                    while [ "${ATTEMPT}" -le 12 ]; do
+                      if curl --fail --silent http://127.0.0.1:18080/health; then
+                        exit 0
+                      fi
+                      ATTEMPT=$((ATTEMPT + 1))
+                      sleep 5
+                    done
+                    echo "Container health check failed"
+                    exit 1
+                '''
+            }
+        }
+
+        stage('Image Vulnerability Scan') {
+            steps {
+                sh '''
+                    set -e
+                    trivy image --format json --output trivy-results.json "${IMAGE_URI}"
+                    conftest test trivy-results.json --policy policy/trivy.rego
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-results.json', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('ECR Login') {
+            steps {
+                sh '''
+                    set -e
+                    aws ecr get-login-password --region "${AWS_REGION}" \
+                    | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+                '''
+            }
+        }
+
+        stage('Push Image to ECR') {
+            steps {
+                sh '''
+                    set -e
+                    docker push "${IMAGE_URI}"
+                '''
+            }
+        }
+
+        stage('Register ECS Task Definition') {
+            steps {
+                script {
+                    env.NEW_TASK_DEFINITION_ARN = sh(
+                        script: '''
+                            aws ecs register-task-definition \
+                              --cli-input-json file://ecs/task-definition-rendered.json \
+                              --region "${AWS_REGION}" \
+                              --query 'taskDefinition.taskDefinitionArn' \
+                              --output text
+                        ''',
+                        returnStdout: true
+                    ).trim()
+                    echo "Registered ${env.NEW_TASK_DEFINITION_ARN}"
+                }
+            }
+        }
+
+        stage('Deploy to ECS') {
+            steps {
+                sh '''
+                    set -e
+                    aws ecs update-service \
+                      --cluster "${ECS_CLUSTER}" \
+                      --service "${ECS_SERVICE}" \
+                      --task-definition "${NEW_TASK_DEFINITION_ARN}" \
+                      --force-new-deployment \
+                      --region "${AWS_REGION}"
+                '''
+            }
+        }
+
+        stage('Wait for ECS Stability') {
+            steps {
+                sh '''
+                    set -e
+                    aws ecs wait services-stable \
+                      --cluster "${ECS_CLUSTER}" \
+                      --services "${ECS_SERVICE}" \
+                      --region "${AWS_REGION}"
+                    aws ecs describe-services \
+                      --cluster "${ECS_CLUSTER}" \
+                      --services "${ECS_SERVICE}" \
+                      --region "${AWS_REGION}" \
+                      --query 'services[0].{Status:status,Desired:desiredCount,Running:runningCount,TaskDefinition:taskDefinition}'
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline completed successfully."
+            echo "Deployed image: ${IMAGE_URI}"
+        }
+        failure {
+            echo "Pipeline failed. Review the failed stage and console output."
+        }
+        always {
+            sh '''
+                docker logout "${ECR_REGISTRY}" || true
+                docker image rm "${IMAGE_URI}" || true
+            '''
+            cleanWs(deleteDirs: true, notFailBuild: true)
+        }
+    }
+}
