@@ -14,7 +14,7 @@ pipeline {
 
     environment {
         AWS_REGION = 'us-east-1'
-        AWS_ACCOUNT_ID = '123456789012'
+        AWS_ACCOUNT_ID = '054221783339'
 
         ECR_REPOSITORY = 'hello-policy-app'
         ECS_CLUSTER = 'hello-policy-cluster'
