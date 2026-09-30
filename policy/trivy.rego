@@ -1,6 +1,9 @@
 package main
 
-deny contains msg if {
+import future.keywords.in
+
+# Deny if any CRITICAL vulnerability is found and not fixed
+deny[msg] {
     some result in input.Results
     some vulnerability in result.Vulnerabilities
     vulnerability.Severity == "CRITICAL"
@@ -15,7 +18,8 @@ deny contains msg if {
     )
 }
 
-warn contains msg if {
+# Warn if any HIGH vulnerability is found
+warn[msg] {
     some result in input.Results
     some vulnerability in result.Vulnerabilities
     vulnerability.Severity == "HIGH"
