@@ -124,7 +124,7 @@ pipeline {
                     ${scannerHome}/bin/sonar-scanner \
                     -Dsonar.projectKey=hello-policy-app \
                     -Dsonar.sources=. \
-                    -Dsonar.host.url=http://<your-sonarqube-host>:9000 \
+                    -Dsonar.host.url=http://ec2-35-88-116-127.us-west-2.compute.amazonaws.com/:9000
                     -Dsonar.login=${SONAR_TOKEN}
                 """
             }
