@@ -39,8 +39,9 @@ pipeline {
                         returnStdout: true
                     ).trim()
 
-                    env.ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                    env.ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com"
                     env.IMAGE_URI = "${ECR_REGISTRY}/${ECR_REPOSITORY}:${GIT_SHORT_COMMIT}"
+
                 }
                 sh '''
                     echo "Commit: ${GIT_SHORT_COMMIT}"
