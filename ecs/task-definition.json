@@ -1,0 +1,50 @@
+{
+  "family": "hello-policy-app",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "ECS_EXECUTION_ROLE_ARN",
+  "containerDefinitions": [
+    {
+      "name": "hello-policy-app",
+      "image": "AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/hello-policy-app:IMAGE_TAG",
+      "essential": true,
+      "readonlyRootFilesystem": true,
+      "user": "10001",
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "APP_ENV",
+          "value": "production"
+        }
+      ],
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/health')\" || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 10
+      },
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/hello-policy-app",
+          "awslogs-region": "AWS_REGION",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
