@@ -7,7 +7,7 @@ deny[msg] {
     some i
     input[i].Cmd == "from"
     lower(input[i].Value[0]) == "latest"
-    msg := "Docker base image must not use the latest tag"
+    msg := "Docker base image must use the latest tag"
 }
 
 # Rule: Disallow ADD, recommend COPY
